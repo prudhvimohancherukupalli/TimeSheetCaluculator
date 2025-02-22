@@ -13,7 +13,7 @@ Timesheet Calculator is a simple web application that allows users to log their 
 - Auto-focus on the "Clock In" field after adding or updating an entry.
 
 ## Live Demo
-[Live Demo](#) *(Update this with the actual live URL once deployed)*
+[Live Demo](#) *(https://animated-rolypoly-5120ec.netlify.app/)*
 
 ## Installation & Setup
 1. Clone the repository:
