@@ -12,19 +12,33 @@ import {
   IconButton,
   Card,
   CardContent,
-  Grid
+  Grid,
+  Checkbox,
+  FormControlLabel,
+  Snackbar
 } from "@mui/material";
 import dayjs from "dayjs";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import MuiAlert from '@mui/material/Alert';
+
+const Alert = React.forwardRef(function Alert(props, ref) {
+  return <MuiAlert elevation={6} variant="filled" ref={ref} {...props} />;
+});
 
 export default function TimesheetCalculator() {
   const [entries, setEntries] = useState([]);
   const [clockIn, setClockIn] = useState("");
   const [clockOut, setClockOut] = useState("");
   const [date, setDate] = useState(dayjs().format("YYYY-MM-DD"));
-  const [hourRate, setHourRate] = useState(0);
+  const [hourRate, setHourRate] = useState(20);
+  const [bulkEntry, setBulkEntry] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
+  const [startDate, setStartDate] = useState(dayjs().format("YYYY-MM-DD"));
+  const [endDate, setEndDate] = useState(dayjs().format("YYYY-MM-DD"));
+  const [error, setError] = useState("");
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [showActions, setShowActions] = useState(true); // to control visibility of actions column
   const clockInRef = useRef(null);
 
   const calculateDifference = (inTime, outTime) => {
@@ -37,31 +51,47 @@ export default function TimesheetCalculator() {
   };
 
   const handleAddEntry = () => {
-    if (clockIn && clockOut) {
+    // Validate inputs
+    if (!clockIn || !clockOut || !hourRate) {
+      setError("Please fill in all fields.");
+      setOpenSnackbar(true);
+      return;
+    }
+
+    let newEntries = [];
+    if (bulkEntry) {
+      let current = dayjs(startDate);
+      while (current.isBefore(dayjs(endDate).add(1, "day"))) {
+        const durationData = calculateDifference(clockIn, clockOut);
+        newEntries.push({
+          date: current.format("YYYY-MM-DD"),
+          clockIn,
+          clockOut,
+          duration: durationData.formatted,
+          totalMinutes: durationData.totalMinutes,
+          totalPay: ((durationData.totalMinutes / 60) * hourRate).toFixed(2),
+        });
+        current = current.add(1, "day");
+      }
+    } else {
       const durationData = calculateDifference(clockIn, clockOut);
-      const newEntry = {
+      newEntries.push({
         date,
         clockIn,
         clockOut,
         duration: durationData.formatted,
         totalMinutes: durationData.totalMinutes,
         totalPay: ((durationData.totalMinutes / 60) * hourRate).toFixed(2),
-      };
-
-      if (editingIndex === null) {
-        setEntries([...entries, newEntry]);
-      } else {
-        const updatedEntries = [...entries];
-        updatedEntries[editingIndex] = newEntry;
-        setEntries(updatedEntries);
-        setEditingIndex(null);
-      }
-
-      setClockIn("");
-      setClockOut("");
-      setDate(dayjs(date).add(1, "day").format("YYYY-MM-DD")); // ✅ Auto-increase date by 1 day
-      setTimeout(() => clockInRef.current?.focus(), 100);
+      });
     }
+
+    setEntries([...entries, ...newEntries]);
+    setClockIn("");
+    setClockOut("");
+    setDate(dayjs(date).add(1, "day").format("YYYY-MM-DD"));
+    setStartDate(dayjs(endDate).add(1, "day").format("YYYY-MM-DD"));
+    setEndDate(dayjs(endDate).add(1, "day").format("YYYY-MM-DD"));
+    setTimeout(() => clockInRef.current?.focus(), 100);
   };
 
   const handleEditEntry = (index) => {
@@ -70,14 +100,22 @@ export default function TimesheetCalculator() {
     setClockOut(entry.clockOut);
     setDate(entry.date);
     setEditingIndex(index);
+
+    // Scroll to top
+    window.scrollTo(0, 0);
+
+    // Uncheck the bulk entry checkbox
+    setBulkEntry(false);
   };
 
   const handleDeleteEntry = (index) => {
     setEntries(entries.filter((_, i) => i !== index));
   };
 
-  const handlePrint = () => {
+  const handlePrintReport = () => {
+    setShowActions(false); // Hide actions column for printing
     window.print();
+    setShowActions(true); // Re-enable actions column after printing
   };
 
   return (
@@ -87,7 +125,7 @@ export default function TimesheetCalculator() {
           Timesheet Calculator
         </Typography>
 
-        <Card sx={{ p: 3, mb: 3, background: "#f9f9f9", boxShadow: 3, borderRadius: 2 }}>
+        <Card sx={{ p: 4, mb: 3, background: "#f9f9f9", boxShadow: 3, borderRadius: 2 }}>
           <CardContent>
             <Grid container spacing={2}>
               <Grid item xs={3}>
@@ -98,6 +136,7 @@ export default function TimesheetCalculator() {
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                   variant="outlined"
+                  disabled={bulkEntry}
                 />
               </Grid>
               <Grid item xs={3}>
@@ -122,17 +161,56 @@ export default function TimesheetCalculator() {
                 />
               </Grid>
               <Grid item xs={3}>
-                <Typography variant="subtitle1">Hourly Rate ($)</Typography>
+                <Typography variant="subtitle1">Hourly Pay Rate ($)</Typography>
                 <TextField
                   type="number"
                   fullWidth
                   value={hourRate}
-                  onChange={(e) => setHourRate(e.target.value)}
+                  onChange={(e) => setHourRate(Number(e.target.value))}
                   variant="outlined"
                 />
               </Grid>
+
               <Grid item xs={12}>
-                <Button variant="contained" color="primary" onClick={handleAddEntry} fullWidth sx={{ py: 1.5, fontSize: "1rem" }}>
+                <FormControlLabel
+                  control={<Checkbox checked={bulkEntry} onChange={(e) => setBulkEntry(e.target.checked)} />}
+                  label="Add multiple entries for a date range"
+                />
+              </Grid>
+
+              {bulkEntry && (
+                <>
+                  <Grid item xs={6}>
+                    <Typography variant="subtitle1">Start Date</Typography>
+                    <TextField
+                      type="date"
+                      fullWidth
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="subtitle1">End Date</Typography>
+                    <TextField
+                      type="date"
+                      fullWidth
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      variant="outlined"
+                    />
+                  </Grid>
+                </>
+              )}
+
+              <Grid item xs={12}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleAddEntry}
+                  fullWidth
+                  sx={{ py: 1.5, fontSize: "1rem" }}
+                >
                   {editingIndex === null ? "Add Entry" : "Update Entry"}
                 </Button>
               </Grid>
@@ -151,48 +229,58 @@ export default function TimesheetCalculator() {
                 <TableCell sx={{ fontWeight: "bold" }}>Clock Out</TableCell>
                 <TableCell sx={{ fontWeight: "bold" }}>Duration</TableCell>
                 <TableCell sx={{ fontWeight: "bold" }}>Total Pay ($)</TableCell>
-                <TableCell className="no-print" sx={{ fontWeight: "bold" }}>Actions</TableCell>
+                {showActions && (
+                  <TableCell className="no-print" sx={{ fontWeight: "bold" }}>Actions</TableCell>
+                )}
               </TableRow>
             </TableHead>
             <TableBody>
               {entries.map((entry, index) => (
-                <TableRow key={index} sx={{ "&:hover": { backgroundColor: "#f9f9f9" } }}>
+                <TableRow key={index}>
                   <TableCell>{entry.date}</TableCell>
                   <TableCell>{entry.clockIn}</TableCell>
                   <TableCell>{entry.clockOut}</TableCell>
                   <TableCell>{entry.duration}</TableCell>
                   <TableCell>${entry.totalPay}</TableCell>
-                  <TableCell className="no-print">
-                    <IconButton onClick={() => handleEditEntry(index)} color="primary">
-                      <EditIcon />
-                    </IconButton>
-                    <IconButton onClick={() => handleDeleteEntry(index)} color="error">
-                      <DeleteIcon />
-                    </IconButton>
-                  </TableCell>
+                  {showActions && (
+                    <TableCell className="no-print">
+                      <IconButton onClick={() => handleEditEntry(index)} color="primary"><EditIcon /></IconButton>
+                      <IconButton onClick={() => handleDeleteEntry(index)} color="error"><DeleteIcon /></IconButton>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
           </Table>
 
-          <div className="no-print">
-            <Button variant="contained" color="secondary" onClick={handlePrint} sx={{ mt: 2, display: "block", mx: "auto" }}>
-              Print Report
-            </Button>
-          </div>
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={handlePrintReport}
+            fullWidth
+            sx={{ mt: 2, mb: 3 }}
+            disabled={entries.length === 0}
+          >
+            Print Report
+          </Button>
         </>
       )}
 
-      {/* CSS for print mode */}
-      <style>
-        {`
-          @media print {
-            .no-print {
-              display: none !important;
-            }
+      <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={() => setOpenSnackbar(false)}>
+        <Alert onClose={() => setOpenSnackbar(false)} severity="error">{error}</Alert>
+      </Snackbar>
+
+      <style jsx global>{`
+        @media print {
+          .no-print {
+            display: none;
           }
-        `}
-      </style>
+          .MuiTableCell-root {
+            border: 1px solid #ddd;
+            padding: 8px;
+          }
+        }
+      `}</style>
     </Container>
   );
 }
