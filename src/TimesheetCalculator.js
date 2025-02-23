@@ -23,7 +23,7 @@ export default function TimesheetCalculator() {
   const [clockIn, setClockIn] = useState("");
   const [clockOut, setClockOut] = useState("");
   const [date, setDate] = useState(dayjs().format("YYYY-MM-DD"));
-  const [hourRate, setHourRate] = useState(20);
+  const [hourRate, setHourRate] = useState(0);
   const [editingIndex, setEditingIndex] = useState(null);
   const clockInRef = useRef(null);
 
