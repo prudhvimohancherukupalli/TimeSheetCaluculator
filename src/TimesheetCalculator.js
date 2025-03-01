@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   Container,
   TextField,
@@ -21,6 +21,7 @@ import dayjs from "dayjs";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import MuiAlert from '@mui/material/Alert';
+import './TimesheetCalculator.css'
 
 const Alert = React.forwardRef(function Alert(props, ref) {
   return <MuiAlert elevation={6} variant="filled" ref={ref} {...props} />;
@@ -31,7 +32,7 @@ export default function TimesheetCalculator() {
   const [clockIn, setClockIn] = useState("");
   const [clockOut, setClockOut] = useState("");
   const [date, setDate] = useState(dayjs().format("YYYY-MM-DD"));
-  const [hourRate, setHourRate] = useState(20);
+  const [hourRate, setHourRate] = useState(0);
   const [bulkEntry, setBulkEntry] = useState(false);
   const [editingIndex, setEditingIndex] = useState(null);
   const [startDate, setStartDate] = useState(dayjs().format("YYYY-MM-DD"));
@@ -57,6 +58,7 @@ export default function TimesheetCalculator() {
       setOpenSnackbar(true);
       return;
     }
+    
 
     let newEntries = [];
     if (bulkEntry) {
@@ -85,7 +87,18 @@ export default function TimesheetCalculator() {
       });
     }
 
-    setEntries([...entries, ...newEntries]);
+    if (editingIndex !== null) {
+      // If editing, update the entry
+      const updatedEntries = [...entries];
+      updatedEntries[editingIndex] = newEntries[0];
+      setEntries(updatedEntries);
+      setEditingIndex(null); // Clear editing state after update
+    } else {
+      // Add new entries
+      setEntries([...entries, ...newEntries]);
+    }
+
+    // Reset the form fields after submission
     setClockIn("");
     setClockOut("");
     setDate(dayjs(date).add(1, "day").format("YYYY-MM-DD"));
@@ -93,6 +106,8 @@ export default function TimesheetCalculator() {
     setEndDate(dayjs(endDate).add(1, "day").format("YYYY-MM-DD"));
     setTimeout(() => clockInRef.current?.focus(), 100);
   };
+
+  
 
   const handleEditEntry = (index) => {
     const entry = entries[index];
@@ -113,10 +128,37 @@ export default function TimesheetCalculator() {
   };
 
   const handlePrintReport = () => {
-    setShowActions(false); // Hide actions column for printing
+    document.body.classList.add('print-mode'); 
+    setShowActions(false);
     window.print();
-    setShowActions(true); // Re-enable actions column after printing
+    document.body.classList.remove('print-mode'); 
+    setShowActions(true);
   };
+
+  const calculateTotals = (entries) => {
+    let totalMinutes = 0;
+    let totalPay = 0;
+
+    entries.forEach(entry => {
+      totalMinutes += entry.totalMinutes;
+      totalPay += parseFloat(entry.totalPay);
+    });
+    const totalHours = Math.floor(totalMinutes / 60);
+    const remainingMinutes = totalMinutes % 60;
+
+    return {
+      totalDuration: `${totalHours}h ${remainingMinutes}m`,
+      totalPay: totalPay.toFixed(2)
+    };
+  }
+
+  useEffect(() => {
+    const totals = calculateTotals(entries);
+    console.log(`Total Duration: ${totals.totalDuration}`);
+    console.log(`Total Pay: $${totals.totalPay}`);
+  }, [entries]);
+
+  let { totalDuration, totalPay } = calculateTotals(entries);
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4 }}>
@@ -125,7 +167,7 @@ export default function TimesheetCalculator() {
           Timesheet Calculator
         </Typography>
 
-        <Card sx={{ p: 4, mb: 3, background: "#f9f9f9", boxShadow: 3, borderRadius: 2 }}>
+        {showActions && <Card sx={{ p: 4, mb: 3, background: "#f9f9f9", boxShadow: 3, borderRadius: 2 }}>
           <CardContent>
             <Grid container spacing={2}>
               <Grid item xs={3}>
@@ -216,7 +258,7 @@ export default function TimesheetCalculator() {
               </Grid>
             </Grid>
           </CardContent>
-        </Card>
+        </Card>}
       </div>
 
       {entries.length > 0 && (
@@ -244,43 +286,47 @@ export default function TimesheetCalculator() {
                   <TableCell>${entry.totalPay}</TableCell>
                   {showActions && (
                     <TableCell className="no-print">
-                      <IconButton onClick={() => handleEditEntry(index)} color="primary"><EditIcon /></IconButton>
-                      <IconButton onClick={() => handleDeleteEntry(index)} color="error"><DeleteIcon /></IconButton>
+                      <IconButton
+                        color="primary"
+                        onClick={() => handleEditEntry(index)}
+                        sx={{ mr: 1 }}
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton
+                        color="secondary"
+                        onClick={() => handleDeleteEntry(index)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
                     </TableCell>
                   )}
                 </TableRow>
               ))}
             </TableBody>
           </Table>
-
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={handlePrintReport}
-            fullWidth
-            sx={{ mt: 2, mb: 3 }}
-            disabled={entries.length === 0}
-          >
-            Print Report
-          </Button>
+        
+          <Typography variant="h6" sx={{ mt: 3 }}>
+            Total Duration: {totalDuration}
+          </Typography>
+          <Typography variant="h6">
+            Total Pay: ${totalPay}
+          </Typography>
+          <div className="no-print">
+            {showActions &&<Button variant="contained" color="secondary" onClick={handlePrintReport} sx={{ mt: 2 }}>
+              Print Report
+            </Button>}
+          </div>
         </>
       )}
 
-      <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={() => setOpenSnackbar(false)}>
-        <Alert onClose={() => setOpenSnackbar(false)} severity="error">{error}</Alert>
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={3000}
+        onClose={() => setOpenSnackbar(false)}
+      >
+        <Alert severity="error">{error}</Alert>
       </Snackbar>
-
-      <style jsx global>{`
-        @media print {
-          .no-print {
-            display: none;
-          }
-          .MuiTableCell-root {
-            border: 1px solid #ddd;
-            padding: 8px;
-          }
-        }
-      `}</style>
     </Container>
   );
 }

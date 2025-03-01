@@ -1,0 +1,14 @@
+@media print {
+    .no-print {
+      display: none !important;
+    }
+  
+    .no-print * {
+      display: none !important;
+    }
+  
+    /* Optionally hide the "Actions" column in the table */
+    .MuiTableCell-root.no-print {
+      display: none !important;
+    }
+  }
