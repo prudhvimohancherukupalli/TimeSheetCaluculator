@@ -1,14 +1,129 @@
+/* ====== Background: soft professional gradient ====== */
+.glass-bg {
+  min-height: 100vh;
+  padding: 24px 0;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e9edf1 100%);
+  font-family: 'Inter', 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ====== Glass cards ====== */
+.glass-card {
+  background: rgba(255, 255, 255, 0.75) !important;
+  border: 1px solid rgba(200, 200, 200, 0.4) !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08) !important;
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-radius: 14px !important;
+}
+
+.glass-card.inner {
+  background: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* ====== Header ====== */
+.glass-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.glass-title {
+  color: #1f2937;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.glass-subtitle {
+  color: #4b5563;
+  font-size: 0.9rem;
+}
+
+/* ====== Inputs & Buttons ====== */
+.glass-input .MuiInputBase-root {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+}
+.glass-input input {
+  color: #111827 !important;
+}
+.glass-input fieldset {
+  border-color: rgba(180, 180, 180, 0.5) !important;
+}
+
+.glass-btn {
+  color: #fff !important;
+  background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%) !important;
+  border: none !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+  text-transform: none !important;
+  box-shadow: 0 4px 14px rgba(29, 78, 216, 0.3) !important;
+  transition: transform 0.1s ease, box-shadow 0.2s ease !important;
+}
+.glass-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(29, 78, 216, 0.4) !important;
+}
+
+.glass-btn.secondary {
+  background: rgba(255, 255, 255, 0.7) !important;
+  color: #1f2937 !important;
+  border: 1px solid rgba(200, 200, 200, 0.6) !important;
+}
+.glass-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+.glass-btn.danger {
+  background: rgba(239, 68, 68, 0.9) !important;
+  color: #fff !important;
+  border: none !important;
+}
+.glass-btn.danger:hover {
+  background: rgba(220, 38, 38, 0.95) !important;
+}
+
+/* ====== Table ====== */
+.glass-table thead {
+  background: #f3f4f6;
+}
+.glass-th {
+  color: #111827 !important;
+  font-weight: 600 !important;
+}
+.glass-row td {
+  color: #1f2937;
+  border-bottom: 1px solid rgba(220, 220, 220, 0.6);
+}
+
+/* ====== Text tints ====== */
+.glass-section-title {
+  color: #1f2937;
+  font-weight: 600;
+}
+.glass-muted {
+  color: #6b7280;
+}
+
+/* ====== Print rules (unchanged) ====== */
 @media print {
-    .no-print {
-      display: none !important;
-    }
-  
-    .no-print * {
-      display: none !important;
-    }
-  
-    /* Optionally hide the "Actions" column in the table */
-    .MuiTableCell-root.no-print {
-      display: none !important;
-    }
+  .no-print {
+    display: none !important;
   }
+  .MuiTable-root {
+    font-size: 12px;
+  }
+  .MuiTableCell-root {
+    padding: 6px 8px;
+  }
+  body, .glass-bg {
+    background: #fff !important;
+  }
+  .glass-card {
+    background: transparent !important;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+  }
+}
+
+/* ====== Mobile tweaks ====== */
+.mobile-card .MuiCardContent-root {
+  padding: 12px !important;
+}
